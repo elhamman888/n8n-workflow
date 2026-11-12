@@ -1,0 +1,303 @@
+{
+  "name": "Education Customer Chat with Telegram",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "education-chat",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-education",
+      "name": "Customer Chat Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        180,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "customerName",
+              "name": "customerName",
+              "type": "string",
+              "value": "={{ $json.body.customerName || 'Guest' }}"
+            },
+            {
+              "id": "customerEmail",
+              "name": "customerEmail",
+              "type": "string",
+              "value": "={{ $json.body.customerEmail || 'not-provided@example.com' }}"
+            },
+            {
+              "id": "message",
+              "name": "message",
+              "type": "string",
+              "value": "={{ $json.body.message || 'No message provided' }}"
+            },
+            {
+              "id": "topic",
+              "name": "topic",
+              "type": "string",
+              "value": "={{ $json.body.topic || 'General inquiry' }}"
+            },
+            {
+              "id": "priority",
+              "name": "priority",
+              "type": "string",
+              "value": "={{ $json.body.priority || 'normal' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "prepare-chat",
+      "name": "Prepare Customer Request",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        430,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            [
+              {
+                "value1": "={{ $json.priority }}",
+                "operation": "equals",
+                "value2": "urgent"
+              }
+            ]
+          ]
+        },
+        "options": {}
+      },
+      "id": "check-priority",
+      "name": "Check Message Priority",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "routeTo",
+              "name": "routeTo",
+              "type": "string",
+              "value": "School Boss"
+            },
+            {
+              "id": "autoReply",
+              "name": "autoReply",
+              "type": "string",
+              "value": "Your message has been sent to the school boss. We will contact you as soon as possible."
+            },
+            {
+              "id": "status",
+              "name": "status",
+              "type": "string",
+              "value": "success"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "urgent-route",
+      "name": "Route to Boss",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        940,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "routeTo",
+              "name": "routeTo",
+              "type": "string",
+              "value": "Admissions Team"
+            },
+            {
+              "id": "autoReply",
+              "name": "autoReply",
+              "type": "string",
+              "value": "Thank you for contacting our education team. We will respond within 1 business day."
+            },
+            {
+              "id": "status",
+              "name": "status",
+              "value": "success",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "normal-route",
+      "name": "Route to Admissions",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        940,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_BOSS_CHAT_ID }}",
+        "text": "={{ '🚨 New urgent education inquiry\n\nName: ' + $json.customerName + '\nEmail: ' + $json.customerEmail + '\nTopic: ' + $json.topic + '\n\nMessage:\n' + $json.message }}",
+        "options": {}
+      },
+      "id": "telegram-boss",
+      "name": "Send to Boss Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        1180,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_ADMISSIONS_CHAT_ID }}",
+        "text": "={{ '📚 New education inquiry\n\nName: ' + $json.customerName + '\nEmail: ' + $json.customerEmail + '\nTopic: ' + $json.topic + '\n\nMessage:\n' + $json.message }}",
+        "options": {}
+      },
+      "id": "telegram-admissions",
+      "name": "Send to Admissions Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        1180,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: $json.status, routeTo: $json.routeTo, autoReply: $json.autoReply, customerName: $json.customerName, customerEmail: $json.customerEmail, topic: $json.topic, message: $json.message }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "response-education",
+      "name": "Reply to Customer",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1450,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "webhook-education": {
+      "main": [
+        [
+          {
+            "node": "prepare-chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "prepare-chat": {
+      "main": [
+        [
+          {
+            "node": "check-priority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check-priority": {
+      "main": [
+        [
+          {
+            "node": "urgent-route",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "normal-route",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "urgent-route": {
+      "main": [
+        [
+          {
+            "node": "telegram-boss",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "normal-route": {
+      "main": [
+        [
+          {
+            "node": "telegram-admissions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "telegram-boss": {
+      "main": [
+        [
+          {
+            "node": "response-education",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "telegram-admissions": {
+      "main": [
+        [
+          {
+            "node": "response-education",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": true,
+  "versionId": "2026-11-12-telegram-education",
+  "triggerCount": 1,
+  "updatedAt": "2026-11-12T00:00:00.000Z"
+}

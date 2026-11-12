@@ -1,0 +1,13 @@
+# n8n runtime data
+config
+database.sqlite
+database.sqlite-shm
+database.sqlite-wal
+
+# local environment
+.env
+.env.*
+
+# OS files
+.DS_Store
+Thumbs.db
